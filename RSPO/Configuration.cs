@@ -12,7 +12,7 @@ namespace RSPO
 		static public bool USE_TEMPLATE_CACHE = false; // Испоьовать кэш шабонов ?
 		static string DB_CONNECTION_STRING = "type=embedded;storesdirectory=./;storename=RSPO";
 
-        static public string APPLICATION_NAME = "Рекомендательная система по рынку недвижимости ИО";
+        static public string APPLICATION_NAME = "Рекомендательная система по рынку недвижимости Иркутской области на основе технологий .NET";
 
 		public static void InitializeEntityContext()
 		{
