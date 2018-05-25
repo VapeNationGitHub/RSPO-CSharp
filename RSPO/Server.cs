@@ -7,51 +7,111 @@ using System.IO;
 using BrightstarDB.EntityFramework;
 using System.Linq; // Этого не хватало.
 using System.Globalization;
+using System.Net;
+using System.Text;
 
 namespace RSPO
 {
-	public class WebModule : NancyModule
-	{
-		public WebModule() : base()
-		{
-			Get["/"] = parameters =>
-			{
+    public class WebModule : NancyModule
+    {
+        private CookieContainer cookies;
+
+        public WebModule() : base()
+        {
+            Get["/"] = parameters =>
+            {
                 ApplicationModel appModel = new ApplicationModel(Application.APPLICATION_NAME);
-				return Render("index.pt", context: appModel, view: new ApplicationView(appModel));
-			};
+                return Render("index.pt", context: appModel, view: new ApplicationView(appModel));
 
-			Get["/objs"] = parameters => // Это страница сайта с квартирами.
-			{
-				ObjectList objList = new ObjectList();
-				// Надо отлаживать в монодевелоп...
-				ObjectListView objView = new ObjectListView(objList);
-				return Render("objlist.pt", context: objList, view: objView);
-			};
+            };
 
-			Get["/offers"] = parameters =>
-			{
-				OfferList model = new OfferList();
-				OfferListView view = new OfferListView(model);
-				return Render("offerlist.pt", context: model, view: view);
-			};
+            Get["/objs"] = parameters => // Это страница сайта с квартирами.
+            {
+                ObjectList objList = new ObjectList();
+                // Надо отлаживать в монодевелоп...
+                ObjectListView objView = new ObjectListView(objList);
+                return Render("objlist.pt", context: objList, view: objView);
+            };
 
-			Get["/agents"] = parameters =>
-			{
-				AgentList model = new AgentList();
-				AgentListView view = new AgentListView(model);
-				return Render("agentlist.pt", context: model, view: view);
-			}; // Why it is emplty???
+            Get["/offers"] = parameters =>
+            {
+                OfferList model = new OfferList();
+                OfferListView view = new OfferListView(model);
+                return Render("offerlist.pt", context: model, view: view);
+            };
 
-			Get["/hello/{Name}"] = parameters =>
-			{
-				IAgent testModel = Application.Context.Agents.Create();
-				testModel.Name = parameters.Name;
-				return View["hello.html", testModel];
-			};
-		}
+            Get["/agents"] = parameters =>
+            {
+                AgentList model = new AgentList();
+                AgentListView view = new AgentListView(model);
+                return Render("agentlist.pt", context: model, view: view);
+            }; // Why it is emplty???
+
+            Get["/hello/{Name}"] = parameters =>
+            {
+                IAgent testModel = Application.Context.Agents.Create();
+                testModel.Name = parameters.Name;
+                return View["hello.html", testModel];
+            };
+        }
+
+        public static void Main(string[] args)
+        {
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:8888/offers");
+            request.CookieContainer = new CookieContainer();
+
+            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+            foreach (Cookie cook in response.Cookies)
+            {
+                Console.WriteLine("Cookie:");
+                Console.WriteLine("{0} = {1}", cook.Name, cook.Value);
+                Console.WriteLine("Domain: {0}", cook.Domain);
+                Console.WriteLine("Path: {0}", cook.Path);
+                Console.WriteLine("Port: {0}", cook.Port);
+                Console.WriteLine("Secure: {0}", cook.Secure);
+
+                Console.WriteLine("When issued: {0}", cook.TimeStamp);
+                Console.WriteLine("Expires: {0} (expired? {1})", cook.Expires, cook.Expired);
+                Console.WriteLine("Don't save: {0}", cook.Discard);
+                Console.WriteLine("Comment: {0}", cook.Comment);
+                Console.WriteLine("Uri for comments: {0}", cook.CommentUri);
+                Console.WriteLine("Version: RFC {0}", cook.Version == 1 ? "2109" : "2965");
+                Console.WriteLine("String: {0}", cook.ToString());
+
+                StreamWriter textFile = new StreamWriter(@"C:\test\textfile.txt");
+                textFile.WriteLine(response.Cookies);
+                textFile.Close();
+
+                Console.ReadLine();
+            }
+        }
+
+        
+        private CookieContainer POST(string Url, string Data) //Возвращаемый тип не строка
+        {
+            WebRequest req = WebRequest.Create(Url);
+            req.Method = "POST";
+            req.Timeout = 100000;
+            req.ContentType = "http://127.0.0.1:8888/offers";
+            byte[] sentData = Encoding.GetEncoding(1251).GetBytes(Data);
+            req.ContentLength = sentData.Length;
+            Stream sendStream = req.GetRequestStream();
+            sendStream.Write(sentData, 0, sentData.Length);
+            sendStream.Close();
+            var reqs = (HttpWebRequest)WebRequest.Create(Url);
+            HttpWebResponse res = (HttpWebResponse)req.GetResponse();
+
+            StreamWriter textFile = new StreamWriter(@"C:\test\textfile.txt");
+            textFile.WriteLine(res);
+            textFile.Close();
+
+            return cookies;
+
+        }
+        
 
 
-		public string Render(string templateFile,
+        public string Render(string templateFile,
 							 object context = null,  // Model
 							 Request request = null, // Request
 							 object view = null)       // View
